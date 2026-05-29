@@ -1,62 +1,46 @@
 import { createRef, useEffect, useMemo, useRef, useState } from 'react';
 import SwipeCard from './components/SwipeCard.jsx';
 import styles from './App.module.css';
+import { fragrances as FRAGRANCES } from './data/fragrances.js';
+import { computeProfile } from './utils/profile.js';
 
 const ACTION_LABEL = { right: 'like', left: 'dislike', up: 'superlike', down: 'skip' };
+const LS_KEY = 'ft_reactions';
+
+function loadReactions() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
+}
 
 export default function App() {
-  const [fragrances, setFragrances] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [fragrances] = useState(FRAGRANCES);
+  const [currentIndex, setCurrentIndex] = useState(FRAGRANCES.length - 1);
   const [lastAction, setLastAction] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
-  const currentIndexRef = useRef(-1);
+  const currentIndexRef = useRef(FRAGRANCES.length - 1);
+  const reactionsRef = useRef(loadReactions());
 
-  // One ref per fragrance, keyed by id
   const cardRefs = useMemo(
-    () => Object.fromEntries((fragrances || []).map(f => [f.id, createRef()])),
-    [fragrances.length]
+    () => Object.fromEntries(fragrances.map(f => [f.id, createRef()])),
+    []
   );
 
-  // Fetch profile whenever all cards are done (regardless of how we got there)
+  // Auto-compute profile when all cards are done
   useEffect(() => {
-    if (!loading && currentIndex < 0 && !profile) {
-      fetch('/api/profile').then(r => r.json()).then(setProfile).catch(() => {});
+    if (currentIndex < 0 && !profile) {
+      setProfile(computeProfile(reactionsRef.current, fragrances));
     }
-  }, [loading, currentIndex, profile]);
-
-  useEffect(() => {
-    fetch('/api/fragrances')
-      .then(r => r.json())
-      .then(data => {
-        setFragrances(data);
-        const idx = data.length - 1;
-        setCurrentIndex(idx);
-        currentIndexRef.current = idx;
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+  }, [currentIndex, profile]);
 
   const updateIndex = (val) => {
     setCurrentIndex(val);
     currentIndexRef.current = val;
   };
 
-  const recordReaction = async (fragranceId, action) => {
-    try {
-      await fetch('/api/reactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fragranceId, action }),
-      });
-    } catch { /* best effort */ }
-  };
-
   const handleSwipe = (dir, fragrance) => {
     const action = ACTION_LABEL[dir] || 'skip';
     setLastAction({ action, name: fragrance.name });
-    recordReaction(fragrance.id, action);
+    reactionsRef.current = { ...reactionsRef.current, [fragrance.id]: action };
+    localStorage.setItem(LS_KEY, JSON.stringify(reactionsRef.current));
   };
 
   const handleCardLeftScreen = (fragranceId) => {
@@ -64,27 +48,23 @@ export default function App() {
     updateIndex(idx - 1);
   };
 
-  // Programmatic swipe via button
   const swipe = async (dir) => {
     const idx = currentIndexRef.current;
     if (idx < 0 || idx >= fragrances.length) return;
-    const fragrance = fragrances[idx];
-    const ref = cardRefs[fragrance.id];
-    if (ref?.current?.swipe) {
-      await ref.current.swipe(dir);
-    }
+    const ref = cardRefs[fragrances[idx].id];
+    if (ref?.current?.swipe) await ref.current.swipe(dir);
   };
 
-  const restart = async () => {
-    await fetch('/api/reactions', { method: 'DELETE' }).catch(() => {});
+  const restart = () => {
+    localStorage.removeItem(LS_KEY);
+    reactionsRef.current = {};
     setProfile(null);
     setLastAction(null);
-    const idx = fragrances.length - 1;
-    updateIndex(idx);
+    updateIndex(fragrances.length - 1);
   };
 
-  const done = !loading && currentIndex < 0 && !profile;
-  const showing = !loading && currentIndex >= 0;
+  const done = currentIndex < 0 && !profile;
+  const showing = currentIndex >= 0;
 
   if (profile) return <ProfileScreen profile={profile} onRestart={restart} />;
 
@@ -106,8 +86,6 @@ export default function App() {
       </header>
 
       <main className={styles.cardArea}>
-        {loading && <p className={styles.message}>Loading fragrances…</p>}
-
         {done && <p className={styles.message}>Analyzing your profile…</p>}
 
         {showing && (
