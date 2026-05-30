@@ -6,6 +6,7 @@ import { computeProfile } from './utils/profile.js';
 
 const ACTION_LABEL = { right: 'like', left: 'dislike', up: 'superlike', down: 'skip' };
 const LS_KEY = 'ft_reactions';
+const LS_ONBOARDED = 'ft_onboarded';
 
 function loadReactions() {
   try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
@@ -16,9 +17,10 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(FRAGRANCES.length - 1);
   const [lastAction, setLastAction] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem(LS_ONBOARDED));
   const currentIndexRef = useRef(FRAGRANCES.length - 1);
   const reactionsRef = useRef(loadReactions());
-  const swipingRef = useRef(false); // guard against rapid button taps
+  const swipingRef = useRef(false);
 
   const cardRefs = useMemo(
     () => Object.fromEntries(fragrances.map(f => [f.id, createRef()])),
@@ -42,12 +44,16 @@ export default function App() {
     setLastAction({ action, name: fragrance.name });
     reactionsRef.current = { ...reactionsRef.current, [fragrance.id]: action };
     localStorage.setItem(LS_KEY, JSON.stringify(reactionsRef.current));
+    // Pre-advance the ref immediately so the next button tap targets the right card.
+    // React state update (re-render) happens in handleCardLeftScreen after animation.
+    const idx = fragrances.findIndex(f => f.id === fragrance.id);
+    currentIndexRef.current = idx - 1;
+    swipingRef.current = false; // card committed — release guard instantly
   };
 
   const handleCardLeftScreen = (fragranceId) => {
     const idx = fragrances.findIndex(f => f.id === fragranceId);
-    updateIndex(idx - 1);
-    swipingRef.current = false; // card is gone — next swipe is safe
+    setCurrentIndex(idx - 1); // triggers re-render to unmount swiped card
   };
 
   const swipe = async (dir) => {
@@ -71,6 +77,12 @@ export default function App() {
   const done = currentIndex < 0 && !profile;
   const showing = currentIndex >= 0;
 
+  const finishOnboarding = () => {
+    localStorage.setItem(LS_ONBOARDED, '1');
+    setOnboarded(true);
+  };
+
+  if (!onboarded) return <Onboarding onStart={finishOnboarding} />;
   if (profile) return <ProfileScreen profile={profile} onRestart={restart} />;
 
   return (
@@ -160,6 +172,51 @@ const FAMILY_META = {
   spicy:    { label: 'Spicy',    color: '#ef4444', emoji: '🌶️' },
   aquatic:  { label: 'Aquatic',  color: '#06b6d4', emoji: '💧' },
 };
+
+// ── Onboarding ────────────────────────────────────────────────────────────────
+
+function Onboarding({ onStart }) {
+  return (
+    <div className={styles.onboarding}>
+      <div className={styles.obCard}>
+        <div className={styles.obHero}>
+          <div className={styles.obLogo}>🌸</div>
+          <h1 className={styles.obTitle}>Fragrance Tinder</h1>
+          <p className={styles.obSub}>Swipe through 30 iconic scents.<br />We'll build your fragrance profile.</p>
+        </div>
+
+        <div className={styles.obGestures}>
+          <div className={styles.obRow}>
+            <GestureCard dir="right" color="#22c55e" icon="❤️" label="Like" hint="You'd wear this" />
+            <GestureCard dir="left"  color="#ef4444" icon="✕"  label="Nope" hint="Not for you" />
+          </div>
+          <div className={styles.obRow}>
+            <GestureCard dir="up"   color="#3b82f6" icon="⭐" label="Super" hint="You love it" />
+            <GestureCard dir="down" color="#94a3b8" icon="?"  label="Skip"  hint="Not sure" />
+          </div>
+        </div>
+
+        <p className={styles.obNote}>Swipe cards or use the buttons. Takes about 2 minutes.</p>
+
+        <button className={styles.obBtn} onClick={onStart}>
+          Start Exploring →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GestureCard({ color, icon, label, hint }) {
+  return (
+    <div className={styles.gestureCard} style={{ borderColor: `${color}44`, background: `${color}11` }}>
+      <span className={styles.gestureIcon}>{icon}</span>
+      <span className={styles.gestureLabel} style={{ color }}>{label}</span>
+      <span className={styles.gestureHint}>{hint}</span>
+    </div>
+  );
+}
+
+// ── Profile Screen ────────────────────────────────────────────────────────────
 
 function ProfileScreen({ profile, onRestart }) {
   const { personality, familyScores, topSeason, topIntensity, superliked, liked } = profile;
