@@ -18,6 +18,7 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const currentIndexRef = useRef(FRAGRANCES.length - 1);
   const reactionsRef = useRef(loadReactions());
+  const swipingRef = useRef(false); // guard against rapid button taps
 
   const cardRefs = useMemo(
     () => Object.fromEntries(fragrances.map(f => [f.id, createRef()])),
@@ -49,10 +50,14 @@ export default function App() {
   };
 
   const swipe = async (dir) => {
+    if (swipingRef.current) return;
     const idx = currentIndexRef.current;
     if (idx < 0 || idx >= fragrances.length) return;
+    swipingRef.current = true;
     const ref = cardRefs[fragrances[idx].id];
     if (ref?.current?.swipe) await ref.current.swipe(dir);
+    // Release guard only after onCardLeftScreen has had time to fire
+    setTimeout(() => { swipingRef.current = false; }, 500);
   };
 
   const restart = () => {
