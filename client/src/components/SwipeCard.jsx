@@ -33,8 +33,16 @@ const SwipeCard = forwardRef(function SwipeCard({ fragrance, onSwipe, onCardLeft
         </div>
 
         <div className={styles.image} style={{ background: fragrance.color || '#1a1a2e' }}>
-          <span className={styles.imageEmoji}>{fragrance.emoji}</span>
+          {fragrance.imageUrl && (
+            <img
+              src={fragrance.imageUrl}
+              alt={fragrance.name}
+              className={styles.cardImg}
+              onError={e => { e.currentTarget.style.display = 'none'; }}
+            />
+          )}
           <div className={styles.imageOverlay} />
+          {!fragrance.imageUrl && <span className={styles.imageEmoji}>{fragrance.emoji}</span>}
           <div className={styles.typeBadge}>{fragrance.type}</div>
         </div>
 

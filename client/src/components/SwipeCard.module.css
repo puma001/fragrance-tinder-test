@@ -79,6 +79,16 @@
   justify-content: center;
 }
 
+.cardImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  z-index: 0;
+}
+
 .imageEmoji {
   font-size: 72px;
   line-height: 1;
@@ -90,22 +100,29 @@
 .imageOverlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 40%, #1a1a2e 100%);
+  /* Photo cards: subtle vignette + dark base for text */
+  background: linear-gradient(to bottom,
+    rgba(0,0,0,0.15) 0%,
+    transparent 35%,
+    rgba(15,15,26,0.6) 70%,
+    #0f0f1a 100%
+  );
+  z-index: 1;
 }
 
 .typeBadge {
   position: absolute;
   top: 14px;
   right: 14px;
-  background: rgba(255,255,255,0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  z-index: 2;
+  z-index: 3;
 }
 
 /* ── Card info ────────────────────────────────────────────────────────────── */

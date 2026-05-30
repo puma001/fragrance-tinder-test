@@ -1,4 +1,10 @@
-export const fragrances = [
+// picsum.photos seed → deterministic unique photo per fragrance, no 404s
+function img(name) {
+  const seed = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return `https://picsum.photos/seed/${seed}/400/500`;
+}
+
+const RAW = [
   // Fresh / Citrus
   { id:1,  name:'Acqua di Gio',       brand:'Giorgio Armani',          type:'Eau de Toilette',     family:'fresh',    gender:'masculine', seasons:['Spring','Summer'],  intensity:'Light',    notes:{top:'Sea Water, Bergamot',      heart:'Jasmine, Cyclamen',          base:'White Musk, Cedar'},       description:'The quintessential aquatic — fresh as a Mediterranean breeze.', color:'linear-gradient(135deg,#006994,#003d5c)', emoji:'🌊', price:75,  size:'100ml', tier:'accessible', retailers:['Sephora',"Macy's",'Nordstrom','Amazon'] },
   { id:2,  name:'Bleu de Chanel',     brand:'Chanel',                  type:'Eau de Parfum',       family:'fresh',    gender:'masculine', seasons:['All year'],         intensity:'Moderate', notes:{top:'Citrus, Mint',              heart:'Ginger, Nutmeg',             base:'Sandalwood, Cedar'},        description:'A woody, aromatic fragrance with a clean, fresh character.',   color:'linear-gradient(135deg,#1a3a5c,#0d2137)', emoji:'🔷', price:175, size:'100ml', tier:'premium',    retailers:['Chanel.com','Nordstrom','Sephora'] },
@@ -36,3 +42,5 @@ export const fragrances = [
   { id:28, name:'Cool Water',         brand:'Davidoff',                type:'Eau de Toilette',     family:'aquatic',  gender:'masculine', seasons:['Spring','Summer'],  intensity:'Moderate', notes:{top:'Sea Water, Mint',          heart:'Geranium, Lavender',         base:'Sandalwood, Musk'},         description:'An ocean-fresh classic that defined a generation.',             color:'linear-gradient(135deg,#0077b6,#023e8a)', emoji:'💧', price:55,  size:'125ml', tier:'accessible', retailers:['Sephora',"Macy's",'Amazon','Ulta'] },
   { id:30, name:'Mandarino di Amalfi',brand:'Tom Ford',                type:'Eau de Parfum',       family:'aquatic',  gender:'unisex',    seasons:['Spring','Summer'],  intensity:'Moderate', notes:{top:'Mandarin, Basil',          heart:'Lemon, Peach, Neroli',       base:'Amber, Musk, Cedar'},       description:'A sun-drenched Italian coastline in a bottle — vibrant and joyful.', color:'linear-gradient(135deg,#ffa500,#e65c00)', emoji:'🍊', price:305, size:'50ml',  tier:'luxury',     retailers:['TomFord.com','Neiman Marcus','Saks Fifth Avenue'] },
 ];
+
+export const fragrances = RAW.map(f => ({ ...f, imageUrl: img(f.name) }));
