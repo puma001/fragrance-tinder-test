@@ -47,6 +47,7 @@ export default function App() {
   const handleCardLeftScreen = (fragranceId) => {
     const idx = fragrances.findIndex(f => f.id === fragranceId);
     updateIndex(idx - 1);
+    swipingRef.current = false; // card is gone — next swipe is safe
   };
 
   const swipe = async (dir) => {
@@ -56,8 +57,7 @@ export default function App() {
     swipingRef.current = true;
     const ref = cardRefs[fragrances[idx].id];
     if (ref?.current?.swipe) await ref.current.swipe(dir);
-    // Release guard only after onCardLeftScreen has had time to fire
-    setTimeout(() => { swipingRef.current = false; }, 500);
+    // Guard is released in handleCardLeftScreen when the card physically leaves
   };
 
   const restart = () => {
