@@ -4,11 +4,9 @@
   position: absolute;
   width: 100%;
   will-change: transform;
-  /* Prevent browser from hijacking the gesture as a scroll/pan */
-  touch-action: none;
+  touch-action: none; /* prevents browser scroll-hijack during drag */
 }
 
-/* Background cards don't need pointer events — only the top card is interactive */
 .swipeBg { pointer-events: none; }
 
 /* ── Card shell ───────────────────────────────────────────────────────────── */
