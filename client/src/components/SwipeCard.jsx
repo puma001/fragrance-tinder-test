@@ -20,7 +20,7 @@ const SwipeCard = forwardRef(function SwipeCard({ fragrance, onSwipe, onCardLeft
       onSwipeRequirementFulfilled={setDir}
       onSwipeRequirementUnfulfilled={() => setDir('')}
       swipeRequirementType="velocity"
-      swipeThreshold={0.4}
+      swipeThreshold={0.2}
       flickOnSwipe
     >
       <div className={styles.card}>

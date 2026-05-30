@@ -14,7 +14,10 @@ function loadReactions() {
 
 export default function App() {
   const [fragrances] = useState(FRAGRANCES);
+  // currentIndex: controls which cards are MOUNTED (lags behind by one animation)
+  // draggableIndex: controls which card is the interactive top card (updates instantly)
   const [currentIndex, setCurrentIndex] = useState(FRAGRANCES.length - 1);
+  const [draggableIndex, setDraggableIndex] = useState(FRAGRANCES.length - 1);
   const [lastAction, setLastAction] = useState(null);
   const [profile, setProfile] = useState(null);
   const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem(LS_ONBOARDED));
@@ -27,33 +30,28 @@ export default function App() {
     []
   );
 
-  // Auto-compute profile when all cards are done
+  // Profile appears once all cards have left the DOM (after final animation)
   useEffect(() => {
     if (currentIndex < 0 && !profile) {
       setProfile(computeProfile(reactionsRef.current, fragrances));
     }
   }, [currentIndex, profile]);
 
-  const updateIndex = (val) => {
-    setCurrentIndex(val);
-    currentIndexRef.current = val;
-  };
-
   const handleSwipe = (dir, fragrance) => {
     const action = ACTION_LABEL[dir] || 'skip';
     setLastAction({ action, name: fragrance.name });
     reactionsRef.current = { ...reactionsRef.current, [fragrance.id]: action };
     localStorage.setItem(LS_KEY, JSON.stringify(reactionsRef.current));
-    // Pre-advance the ref immediately so the next button tap targets the right card.
-    // React state update (re-render) happens in handleCardLeftScreen after animation.
     const idx = fragrances.findIndex(f => f.id === fragrance.id);
-    currentIndexRef.current = idx - 1;
-    swipingRef.current = false; // card committed — release guard instantly
+    const next = idx - 1;
+    currentIndexRef.current = next;  // ref for button swipes
+    setDraggableIndex(next);          // state: makes next card draggable instantly
+    swipingRef.current = false;
   };
 
   const handleCardLeftScreen = (fragranceId) => {
     const idx = fragrances.findIndex(f => f.id === fragranceId);
-    setCurrentIndex(idx - 1); // triggers re-render to unmount swiped card
+    setCurrentIndex(idx - 1); // unmounts the swiped card after its exit animation
   };
 
   const swipe = async (dir) => {
@@ -63,7 +61,6 @@ export default function App() {
     swipingRef.current = true;
     const ref = cardRefs[fragrances[idx].id];
     if (ref?.current?.swipe) await ref.current.swipe(dir);
-    // Guard is released in handleCardLeftScreen when the card physically leaves
   };
 
   const restart = () => {
@@ -71,11 +68,14 @@ export default function App() {
     reactionsRef.current = {};
     setProfile(null);
     setLastAction(null);
-    updateIndex(fragrances.length - 1);
+    const last = fragrances.length - 1;
+    setCurrentIndex(last);
+    setDraggableIndex(last);
+    currentIndexRef.current = last;
   };
 
-  const done = currentIndex < 0 && !profile;
-  const showing = currentIndex >= 0;
+  const done = draggableIndex < 0 && !profile;
+  const showing = draggableIndex >= 0;
 
   const finishOnboarding = () => {
     localStorage.setItem(LS_ONBOARDED, '1');
@@ -93,10 +93,10 @@ export default function App() {
           <div className={styles.progress}>
             <div
               className={styles.progressBar}
-              style={{ width: `${((fragrances.length - 1 - currentIndex) / fragrances.length) * 100}%` }}
+              style={{ width: `${((fragrances.length - 1 - draggableIndex) / fragrances.length) * 100}%` }}
             />
             <span className={styles.progressLabel}>
-              {fragrances.length - 1 - currentIndex} / {fragrances.length}
+              {fragrances.length - 1 - draggableIndex} / {fragrances.length}
             </span>
           </div>
         )}
@@ -115,7 +115,7 @@ export default function App() {
                   fragrance={fragrance}
                   onSwipe={handleSwipe}
                   onCardLeftScreen={handleCardLeftScreen}
-                  isTop={index === currentIndex}
+                  isTop={index === draggableIndex}
                 />
               ) : null
             )}
