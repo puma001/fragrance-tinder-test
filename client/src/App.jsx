@@ -98,6 +98,7 @@ export default function App() {
                   fragrance={fragrance}
                   onSwipe={handleSwipe}
                   onCardLeftScreen={handleCardLeftScreen}
+                  isTop={index === currentIndex}
                 />
               ) : null
             )}
